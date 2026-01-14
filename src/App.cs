@@ -13,9 +13,9 @@ namespace Chip8Vm.src
         // Conf
         public int Width { get; init; } = 64;
         public int Height { get; init; } = 32;
-        public int Scaling { get; init; } = 10;
+        public int Scaling { get; init; } = 15;
         public string Title { get; init; } = "Chip8";
-        public int TickRate { get; init; } = 600;
+        public int TickRate { get; init; } = 640;
 
 
         private Interpreter _interpreter;
@@ -24,16 +24,18 @@ namespace Chip8Vm.src
 
         public App(string[] args) {
             string fileName = "program.ch8";
+            if(args.Length > 1)
+            {
+                fileName = args[2];
+            }
 
-            try
+            if (!File.Exists(fileName))
             {
-                _program = File.ReadAllBytes(fileName);
+                System.Console.WriteLine($"File {fileName} not found !");
+                System.Environment.Exit(-1);
             }
-            catch (DirectoryNotFoundException e)
-            {
-                System.Console.WriteLine(e.Message);
-                return;
-            }
+
+             _program = File.ReadAllBytes(fileName);
 
             _interpreter = new(_program);
             _window = new(Title, Width, Height, Scaling, TickRate);
@@ -54,10 +56,11 @@ namespace Chip8Vm.src
                 _interpreter.Step(_window.KeysPressed);
                 if (_interpreter.DisplayUpdate == true)
                 {
-                    _window.Draw(_interpreter.DisplayBuffer);
+                    _window.UpdateBuffer(_interpreter.DisplayBuffer);
                     _interpreter.DisplayUpdate = false;
                 }
 
+                _window.DrawBuffer();
                 _window.Present();
             }
         }

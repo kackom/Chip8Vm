@@ -14,7 +14,7 @@ namespace Chip8Vm.src
         // Window config
         public Dictionary<SDL.SDL_Keycode, byte> KeyMap { get; init; } = [];
         public SDL.SDL_Color PixelColor { get; init; } = new SDL.SDL_Color() { r = 255, g = 255, b = 255, a = 255 };
-        public SDL.SDL_Color BackgroundColor { get; init; } = new SDL.SDL_Color() { r = 21,  g = 21, b = 21, a = 255 };
+        public SDL.SDL_Color BackgroundColor { get; init; } = new SDL.SDL_Color() { r = 21,  g = 21, b = 161, a = 255 };
 
         // Window status
         public bool Exit { get; private set; } = false;
@@ -30,6 +30,7 @@ namespace Chip8Vm.src
         readonly private IntPtr _renderer = IntPtr.Zero;
 
         private SDL.SDL_Event _windowEvent;
+        private List<SDL.SDL_Point> _pixels = [];
         private UInt64 _frameStart, _frameEnd;
         private float _deltaTime;
 
@@ -101,44 +102,39 @@ namespace Chip8Vm.src
             }
         }
 
-        public void Draw(bool[,] pixelBuffer)
+        public void UpdateBuffer(bool[,] pixelBuffer)
         {
-            SDL.SDL_SetRenderDrawColor(_renderer, BackgroundColor.r, BackgroundColor.g, BackgroundColor.b, BackgroundColor.a);
-            SDL.SDL_RenderClear(_renderer);
-
-       
-            List<SDL.SDL_Point> pixels = [];
+            _pixels.Clear();
 
             for(int y = 0; y < pixelBuffer.GetLength(1); y++)
             {
                 for (int x = 0; x < pixelBuffer.GetLength(0); x++)
                 {
                     if(pixelBuffer[x, y] == true)
-                        pixels.Add(new SDL.SDL_Point() {x=x, y=y});
+                        _pixels.Add(new SDL.SDL_Point() {x=x, y=y});
                 }
             }
 
+        }
+
+        public void DrawBuffer()
+        {
+            SDL.SDL_SetRenderDrawColor(_renderer, BackgroundColor.r, BackgroundColor.g, BackgroundColor.b, BackgroundColor.a);
+            SDL.SDL_RenderClear(_renderer);
+
             SDL.SDL_SetRenderDrawColor(_renderer, PixelColor.r, PixelColor.g, PixelColor.b, PixelColor.a);
-            SDL.SDL_RenderDrawPoints(_renderer, pixels.ToArray(), pixels.Count());
+            SDL.SDL_RenderDrawPoints(_renderer, [.. _pixels], _pixels.Count());
         }
 
         public void Present()
         {
             SDL.SDL_RenderPresent(_renderer);
 
-            _frameEnd = SDL.SDL_GetPerformanceCounter();
-            _deltaTime = (_frameEnd - _frameStart) / (float)SDL.SDL_GetPerformanceFrequency();
-            SDL.SDL_Delay((uint)Math.Floor(1 / TickRate - _deltaTime * 1000.0));
-        }
-
-        virtual public void Init()
-        {
-
-        }
-
-        virtual public void Loop()
-        {
-
+            do
+            {
+                _frameEnd = SDL.SDL_GetPerformanceCounter();
+                _deltaTime = (_frameEnd - _frameStart) / (float)SDL.SDL_GetPerformanceFrequency();
+            } while (_deltaTime < 1.0 / TickRate);
         }
     }
 }
