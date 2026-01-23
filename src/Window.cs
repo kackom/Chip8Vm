@@ -23,7 +23,6 @@ namespace Chip8Vm.src
         readonly public int Width;
         readonly public int Height;
         readonly public int Scaling;
-        readonly public int TickRate;
 
 
         readonly private IntPtr _window = IntPtr.Zero;
@@ -31,15 +30,14 @@ namespace Chip8Vm.src
 
         private SDL.SDL_Event _windowEvent;
         private List<SDL.SDL_Point> _pixels = [];
-        private UInt64 _frameStart, _frameEnd;
-        private float _deltaTime;
 
-        public Window(string title, int width, int height, int scaling, int tickRate)
+
+        public Window(string title, int width, int height, int scaling, Dictionary<SDL.SDL_Keycode, byte> _keyMap)
         {
             this.Width = width;
             this.Height = height;
             this.Scaling = scaling;
-            this.TickRate = tickRate;
+            this.KeyMap = _keyMap;
 
             if (SDL.SDL_Init(SDL.SDL_INIT_EVERYTHING) != 0)
                 throw new ApplicationException($"SDL_Init failed: {SDL.SDL_GetError()}\n");
@@ -74,8 +72,6 @@ namespace Chip8Vm.src
 
         public void EventLoop()
         {
-            _frameStart = SDL.SDL_GetPerformanceCounter();
-
             while (SDL.SDL_PollEvent(out _windowEvent) != 0)
             {
                 byte key;
@@ -100,6 +96,8 @@ namespace Chip8Vm.src
                         break;  
                 }
             }
+            
+            KeysPressed = [.. KeysPressed.Distinct()];
         }
 
         public void UpdateBuffer(bool[,] pixelBuffer)
@@ -129,12 +127,6 @@ namespace Chip8Vm.src
         public void Present()
         {
             SDL.SDL_RenderPresent(_renderer);
-
-            do
-            {
-                _frameEnd = SDL.SDL_GetPerformanceCounter();
-                _deltaTime = (_frameEnd - _frameStart) / (float)SDL.SDL_GetPerformanceFrequency();
-            } while (_deltaTime < 1.0 / TickRate);
         }
     }
 }
